@@ -1,0 +1,74 @@
+﻿
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet" />  
+
+    <script>
+        $(document).ready(function ()
+        {
+            $.ajaxSetup(
+		    {
+		        error: function (XMLHttpRequest, textStatus, errorThrown) {
+		            var response = eval('(' + XMLHttpRequest.responseText + ')');
+		            alert(response.ErrorMessage);
+		        },
+		        cache: false
+		    });
+
+            $.ajax(
+		    {
+		        url: "http://challenge.mediamath.com/api/agencies?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+		        success: function (result) 
+		        {
+		            $.each(result.agencies, function (key, val)
+		            {
+		                $("#drpAgencies").append('<option id="' + val._id + '">' + val.name + '</option>');
+		            });
+		        }
+		    });
+
+            $("#drpAgencies").change(function (e)
+            {
+                $("#drpAdvertisers").empty();
+                $("#drpAdvertisers").append('<option>Choose an advertiser</option>');
+                var selectedAgencyid = $(this).children(':selected').attr('id');
+                $.ajax(
+		        {
+		            url: "http://challenge.mediamath.com/api/advertisers?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+		            success: function (result)
+		            {
+		                $.each(result.advertisers, function (key, val)
+		                {
+		                    if (val.agency_id == selectedAgencyid)
+		                        $("#drpAdvertisers").append('<option id="' + val._id + '">' + val.name + '</option>');
+		                });
+		            }
+		        });
+            });
+        })
+    </script>
+
+    </head>
+    <body>
+        <div>
+            <select id="drpAgencies">
+                <option>Choose an agency...</option> 
+            </select>
+        </div>
+        <div>
+            <select id="drpAdvertisers">
+                <option>Choose an advertiser...</option> 
+            </select>
+        </div>
+        
+    </body>
+
+
+    </html>

@@ -1,197 +1,188 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Index</title>
-    <script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
-    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-    <script src="http://www.jsviews.com/download/jsviews.js"></script>
+	<meta name="viewport" content="width=device-width" />
+	<title>Index</title>
+	<link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet" />
+	</head>
+	<body>
+		<div style="float:left">
+			<p>
+				<select id="drpAgencies" class="form-control">
+					<option>Choose an agency...</option>
+				</select>
+			</p>
+			<p>
+				<select id="drpAdvertisers" class="form-control">
+					<option>Choose an advertiser...</option>
+				</select>
+			</p>
+			<p>
+				<button id="btnGetCampaigns" type="button" class="btn btn-primary">Get Campaigns</button>
+			</p>
+		</div>
+		<div id="divCampaigns" style="float:right; display:none">
+			<table class="table table-striped table-bordered table-hover table-condensed">
+				<thead>
+					<tr class="info">
+						<td><input type="checkbox" id="chkCampaigns" /></td>
+						<td>Campaign Name</td>
+						<td>Status</td>
+						<td>Budget</td>
+						<td>Start Date</td>
+						<td>End Date</td>
+					</tr>
+				</thead>
+				<tbody id="tblCampaigns"></tbody>
+			</table>
+			<button id="btnSaveCampaigns" type="button" class="btn btn-primary">Save</button>
+		</div>
 
-    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet" />  
-    <script>
-        $(document).ready(function ()
-        {
-            $.ajaxSetup(
-		    {
-		        error: function (XMLHttpRequest, textStatus, errorThrown) {
-		            var response = eval('(' + XMLHttpRequest.responseText + ')');
-		            alert(response.ErrorMessage);
-		        },
-		        cache: false
-		    });
+		<script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+		<script src="http://www.jsviews.com/download/jsviews.js"></script>
 
-            $.ajax(
-		    {
-		        url: "http://challenge.mediamath.com/api/agencies?api_token=204f3e466debc3c62ad17596199614ccdf222579",
-		        success: function (result) 
-		        {
-		            $.each(result.agencies, function (key, val)
-		            {
-		                $("#drpAgencies").append('<option id="' + val._id + '">' + val.name + '</option>');
-		            });
-		        }
-		    });
+		<script>
+			$(document).ready(function ()
+			{
+				$.ajaxSetup(
+				{
+					error: function (XMLHttpRequest, textStatus, errorThrown)
+					{
+						var response = eval('(' + XMLHttpRequest.responseText + ')');
+						alert(response.ErrorMessage);
+					},
+					cache: false
+				});
 
-            $("#drpAgencies").change(function (e)
-            {
-                $("#drpAdvertisers").empty();
-                $("#drpAdvertisers").append('<option>Choose an advertiser</option>');
-                var selectedAgencyid = $(this).children(':selected').attr('id');
-                $.ajax(
-		        {
-		            url: "http://challenge.mediamath.com/api/advertisers?api_token=204f3e466debc3c62ad17596199614ccdf222579",
-		            success: function (result)
-		            {
-		                $.each(result.advertisers, function (key, val)
-		                {
-		                    if (val.agency_id == selectedAgencyid)
-		                        $("#drpAdvertisers").append('<option id="' + val._id + '">' + val.name + '</option>');
-		                });
-		            }
-		        });
-            });
+				$.getJSON("http://challenge.mediamath.com/api/agencies?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+					function (result)
+					{
+						$.each(result.agencies, function (key, val)
+						{
+							$("#drpAgencies").append('<option id="' + val._id + '">' + val.name + '</option>');
+						});
+					}
+				);
 
-            $("#btnGetCampaigns").click(function (e)
-            {
-                $("#divCampaigns").show();
-                PopulateGrid($("#drpAdvertisers").children(':selected').attr('id'));
-            })
+				$("#drpAgencies").change(function (e)
+				{
+					$("#drpAdvertisers").empty();
+					$("#drpAdvertisers").append('<option>Choose an advertiser</option>');
+					var selectedAgencyId = $(this).children(':selected').attr('id');
+					$.getJSON("http://challenge.mediamath.com/api/advertisers?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+						function (result)
+						{
+							$.each(result.advertisers, function (key, val)
+							{
+								if (val.agency_id == selectedAgencyId)
+									$("#drpAdvertisers").append('<option id="' + val._id + '">' + val.name + '</option>');
+							});
+						}
+					);
+				});
 
-            $("#chkCampaigns").click(function ()
-            {
-                var checkBoxes = $(".campaign-marker");
-                checkBoxes.prop("checked", $("#chkCampaigns").prop("checked"));
-            })
+				$("#btnGetCampaigns").click(function (e)
+				{
+					$("#divCampaigns").hide();
+					var selectedAdvertiserId = $("#drpAdvertisers").children(':selected').attr('id');
+					$.getJSON("http://challenge.mediamath.com/api/campaigns?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+						function (result)
+						{
+							var tempCampaigns = [];
+							$.each(result.campaigns, function (key, val)
+							{
+								if (val.advertiser_id == selectedAdvertiserId)
+									tempCampaigns.push(val)
+							});
 
-            $("#btnSaveCampaigns").click(function (e)
-            {
-                var fail = 0;
-                $.each($('.campaign-marker:checked'), function ()
-                {
-                    fail++
-                    var campaignId = this.value;
-                    $.ajax(
-		            {
-		                type: "POST",
-                        async: false,
-		                url: "http://challenge.mediamath.com/api/campaigns/" + campaignId + "?api_token=204f3e466debc3c62ad17596199614ccdf222579",
-		                data:
-                            {
-                                name: $("#name" + campaignId).val(),
-                                status: $("#status" + campaignId).val(),
-                                budget: $("#budget" + campaignId).val(),
-                                start_date: $("#startdate" + campaignId).val(),
-                                end_date: $("#enddate" + campaignId).val()
-                            },
-		                success: function (result)
-		                {
-		                    if (result.status = "ok")
-		                        fail--;
-		                }
-		            });
-                });
-                if (fail == 0)
-                    alert("All selected campaignes have been successfully updated!");
-                else
-                    alert("There was an error saving your campaignes");
-            })
+							if (tempCampaigns.length > 0)
+							{
+								var template = $.templates("#tmplCampaigns");
+								template.link("#tblCampaigns", tempCampaigns);
 
-            $(".data-input").change(function () {
-                alert("Handler for .change() called.");
-            })
+								$(".data-select").change(function ()
+								{
+									$('#chk' + $(this).attr("data-id")).prop('checked', true);
+								});
 
-            jQuery('.data-input').on('input', function () {
-                alert("")
-            })
-        })
+								$('.data-input').on('input', function ()
+								{
+									$('#chk' + $(this).attr("data-id")).prop('checked', true);
+								});
 
-        function PopulateGrid(advertiserId)
-        {
-            $.getJSON("http://challenge.mediamath.com/api/campaigns?api_token=204f3e466debc3c62ad17596199614ccdf222579",
-                function (result)
-                {
-                    var tempCampaigns = [];
-                    $.each(result.campaigns, function (key, val)
-                    {
-                        if (val.advertiser_id == advertiserId)
-                            tempCampaigns.push(val)
-                    });
-                    var template = $.templates("#tmplCampaigns");
-                    template.link("#tblCampaigns", tempCampaigns);
+								$("#divCampaigns").show();
+							}
+						}
+					);
+				})
 
-                    $(".data-select").change(function ()
-                    {
-                        $('#chk' + $(this).attr("data-id")).prop('checked', true);
-                    })
+				$("#chkCampaigns").click(function ()
+				{
+				    $(".campaign-marker").prop("checked", $("#chkCampaigns").prop("checked"));
+				})
 
-                    $('.data-input').on('input', function () {
-                        $('#chk' + $(this).attr("data-id")).prop('checked', true);
-                    })
-                }
-            );
-        }
-    </script>
+				$("#btnSaveCampaigns").click(function (e)
+				{
+					var fail = 0;
+					$.each($('.campaign-marker:checked'), function ()
+					{
+						fail++
+						var campaignId = this.value;
+						$.ajax(
+						{
+							type: "POST",
+							async: false,
+							url: "http://challenge.mediamath.com/api/campaigns/" + campaignId + "?api_token=204f3e466debc3c62ad17596199614ccdf222579",
+							data:
+								{
+									name: $("#name" + campaignId).val(),
+									status: $("#status" + campaignId).val(),
+									budget: $("#budget" + campaignId).val(),
+									start_date: $("#startdate" + campaignId).val(),
+									end_date: $("#enddate" + campaignId).val()
+								},
+							success: function (result)
+							{
+								if (result.status = "ok")
+									fail--;
+							}
+						});
+					});
+					if (fail == 0)
+						alert("All selected campaignes have been successfully updated!");
+					else
+						alert("There was an error saving your campaignes");
+				})
+			})
+		</script>
 
-    <script id="tmplCampaigns" type="text/x-jsrender">
-        <tr>
-            <td><input type="checkbox" value="{{:_id}}" class="campaign-marker data-input" id="chk{{:_id}}"/></td>
-            <td><input type="text" class="form-control data-input" value="{{:name}}" id="name{{:_id}}" data-id="{{:_id}}"/></td>
-            <td>
-                <select class="form-control data-select" id="status{{:_id}}" data-id="{{:_id}}">
-                    {{if status}}
-                    <option selected value="true">Active</option>
-                    <option value="false">Inactive</option>
-                    {{else}}
-                    <option value="true">Active</option>
-                    <option value="false" selected>Inactive</option>
-                    {{/if}}
-                </select>
-            </td>
-            <td style="width:200px">
-                <div class="input-group">
-                    <span class="input-group-addon">$</span>
-                    <input type="number" class="form-control data-input" value="{{:budget}}" id="budget{{:_id}}" data-id="{{:_id}}">
-                </div>
-            </td>
-            <td><input class="form-control data-input" type="date" value="{{:start_date.substring(0,10)}}" id="startdate{{:_id}}" data-id="{{:_id}}" /></td>
-            <td><input class="form-control data-input" type="date" value="{{:end_date.substring(0,10)}}" id="enddate{{:_id}}" data-id="{{:_id}}" /></td>
-        </tr>
-    </script>
+		<script id="tmplCampaigns" type="text/x-jsrender">
+			<tr>
+				<td><input type="checkbox" value="{{:_id}}" class="campaign-marker data-input" id="chk{{:_id}}" /></td>
+				<td><input type="text" class="form-control data-input" value="{{:name}}" id="name{{:_id}}" data-id="{{:_id}}" /></td>
+				<td>
+					<select class="form-control data-select" id="status{{:_id}}" data-id="{{:_id}}">
+						{{if status}}
+						<option value="true" selected>Active</option>
+						<option value="false">Inactive</option>
+						{{else}}
+						<option value="true">Active</option>
+						<option value="false" selected>Inactive</option>
+						{{/if}}
+					</select>
+				</td>
+				<td style="width:200px">
+					<div class="input-group">
+						<span class="input-group-addon">$</span>
+						<input type="number" class="form-control data-input" value="{{:budget}}" id="budget{{:_id}}" data-id="{{:_id}}">
+					</div>
+				</td>
+				<td><input class="form-control data-input" type="date" value="{{:start_date.substring(0,10)}}" id="startdate{{:_id}}" data-id="{{:_id}}" /></td>
+				<td><input class="form-control data-input" type="date" value="{{:end_date.substring(0,10)}}" id="enddate{{:_id}}" data-id="{{:_id}}" /></td>
+			</tr>
+		</script>
 
-    </head>
-    <body>
-        <div style="float:left">
-            <p>
-                <select id="drpAgencies" class="form-control">
-                    <option>Choose an agency...</option>
-                </select>
-            </p>
-            <p>
-                <select id="drpAdvertisers" class="form-control">
-                    <option>Choose an advertiser...</option>
-                </select>
-            </p>
-            <p>
-                <button id="btnGetCampaigns" type="button" class="btn btn-primary">Get Campaigns</button>
-            </p>
-        </div>
-        <div id="divCampaigns" style="float:right; display:none">
-            <table class="table table-striped table-bordered table-hover table-condensed">
-                <thead>
-                    <tr class="info">
-                        <td><input type="checkbox" id="chkCampaigns" /></td>
-                        <td>Campaign Name</td>
-                        <td>Status</td>
-                        <td>Budget</td>
-                        <td>Start Date</td>
-                        <td>End Date</td>
-                    </tr>
-                </thead>
-                <tbody id="tblCampaigns"></tbody>
-            </table>
-            <button id="btnSaveCampaigns" type="button" class="btn btn-primary">Save</button>
-        </div>
-    </body>
+	</body>
 
 
-    </html>
+	</html>
